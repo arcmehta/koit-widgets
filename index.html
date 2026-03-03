@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Koit Health Chat</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#1a3c5e;--navy-d:#0f2540;--navy-m:#1e4976;
+  --teal:#00695c;--teal-m:#00897b;--teal-lg:#e0f2f1;--teal-gw:rgba(0,137,123,0.13);
+  --green:#2e7d32;--green-m:#43a047;--green-lg:#e8f5e9;--green-gw:rgba(46,125,50,0.13);
+  --white:#ffffff;--bg:#faf9f6;--bg2:#f0ede6;--text:#1a2e42;--muted:#7a8694;--border:#dde3ec;
+  --cream:#faf9f6;--cream-d:#f0ede6;
+  --orange:#e65100;--red:#c62828;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--cream);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 0% 0%,rgba(0,105,92,0.05) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 40% at 100% 100%,rgba(26,60,94,0.04) 0%,transparent 60%);}
+
+.widget{
+  display:flex;flex-direction:column;height:100vh;max-width:720px;
+  margin:0 auto;background:var(--white);
+  box-shadow:0 0 40px rgba(0,105,92,0.08);
+}
+
+/* minimal status bar - no header since Wix handles that */
+.wh{
+  background:var(--white);border-bottom:1.5px solid var(--border);
+  padding:10px 18px;display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.wh-av{display:none;}
+.wh-info{display:flex;align-items:center;gap:7px;}
+.wh-name{font-size:12px;font-weight:600;color:var(--teal);display:flex;align-items:center;gap:5px;}
+.wh-name::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--teal-m);display:inline-block;animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.wh-sub{display:none;}
+.wh-clear{background:transparent;border:1.5px solid var(--border);color:var(--muted);border-radius:7px;padding:5px 11px;font-size:11.5px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .2s;}
+.wh-clear:hover{border-color:var(--navy);color:var(--navy);}
+
+/* messages */
+.msgs{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px;background:var(--cream);scroll-behavior:smooth;}
+.msgs::-webkit-scrollbar{width:3px;}
+.msgs::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+.msg{display:flex;gap:8px;animation:fu .22s ease;max-width:88%;}
+@keyframes fu{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{align-self:flex-end;flex-direction:row-reverse;}
+.msg.bot{align-self:flex-start;}
+.av{width:30px;height:30px;border-radius:50%;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.msg.bot .av{background:linear-gradient(135deg,#4db6ac,var(--teal-m));}
+.msg.user .av{background:var(--cream-d);border:1.5px solid var(--border);}
+.bbl{padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.65;}
+.msg.bot .bbl{background:var(--white);border:1.5px solid var(--border);border-top-left-radius:3px;box-shadow:0 1px 8px rgba(0,105,92,0.06);}
+.msg.user .bbl{background:linear-gradient(135deg,var(--navy),var(--navy-m));color:white;border-top-right-radius:3px;}
+.mt{font-size:10px;color:var(--muted);margin-top:3px;text-align:right;}
+
+.disclaimer{background:#fff8e1;border:1.5px solid #ffe082;border-radius:9px;padding:9px 12px;font-size:11.5px;color:#5d4037;display:flex;gap:7px;line-height:1.5;flex-shrink:0;}
+
+/* product card */
+.pc{background:var(--green-lg);border:1.5px solid #a5d6a7;border-radius:11px;padding:12px;margin-top:8px;display:flex;gap:10px;}
+.pc-em{font-size:22px;flex-shrink:0;}
+.pc-name{font-weight:700;font-size:13px;color:var(--green);margin-bottom:2px;}
+.pc-cat{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px;}
+.pc-desc{font-size:12.5px;color:#444;line-height:1.5;margin-bottom:8px;}
+.pc-btns{display:flex;gap:7px;flex-wrap:wrap;}
+.b-buy{background:linear-gradient(135deg,var(--green),var(--green-m));color:white;border:none;border-radius:7px;padding:6px 13px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;display:inline-block;transition:all .18s;}
+.b-buy:hover{transform:translateY(-1px);box-shadow:0 4px 12px var(--green-gw);}
+.b-enq{background:white;color:var(--navy);border:1.5px solid var(--navy);border-radius:7px;padding:6px 13px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .18s;}
+.b-enq:hover{background:var(--navy);color:white;}
+.nl{background:#fff3e0;border:1.5px solid #ffcc80;border-radius:11px;padding:12px;margin-top:8px;}
+.nl-t{color:var(--orange);font-weight:700;font-size:12.5px;margin-bottom:4px;}
+.nl-d{font-size:12.5px;color:#555;line-height:1.5;margin-bottom:8px;}
+.img-p{max-width:180px;border-radius:8px;margin-top:6px;border:1.5px solid var(--border);display:block;}
+.img-l{font-size:10.5px;color:var(--muted);margin-top:3px;font-style:italic;}
+
+/* typing */
+.typing{display:flex;align-items:center;gap:4px;padding:5px 0;}
+.typing span{width:6px;height:6px;border-radius:50%;background:var(--teal-m);animation:bn 1.1s infinite;}
+.typing span:nth-child(2){animation-delay:.18s}.typing span:nth-child(3){animation-delay:.36s}
+@keyframes bn{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+
+/* quick replies */
+.qr-wrap{padding:9px 18px 7px;background:var(--white);border-top:1.5px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;}
+.qr{background:var(--bg2);border:1.5px solid var(--border);border-radius:18px;padding:5px 12px;font-size:12px;color:var(--navy);cursor:pointer;transition:all .18s;font-family:'DM Sans',sans-serif;font-weight:600;white-space:nowrap;}
+.qr:hover{background:var(--teal-lg);border-color:var(--teal-m);color:var(--teal);}
+
+/* preview */
+.prev-strip{display:none;padding:7px 18px 0;background:var(--white);gap:7px;align-items:center;}
+.prev-strip.show{display:flex;}
+.prev-thumb{width:46px;height:46px;border-radius:7px;object-fit:cover;border:1.5px solid var(--border);}
+.prev-name{font-size:11.5px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.prev-rm{background:var(--red);color:white;border:none;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+
+/* input */
+.inp-area{padding:10px 14px 12px;border-top:1.5px solid var(--border);background:var(--white);display:flex;gap:8px;align-items:flex-end;flex-shrink:0;}
+.att{width:38px;height:38px;border-radius:9px;flex-shrink:0;background:var(--bg2);border:1.5px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .18s;position:relative;}
+.att:hover{background:var(--teal-lg);border-color:var(--teal-m);}
+.att input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+textarea{flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:10px 13px;color:var(--text);font-size:13.5px;font-family:'DM Sans',sans-serif;resize:none;line-height:1.5;min-height:38px;max-height:100px;transition:border-color .2s;}
+textarea:focus{outline:none;border-color:var(--teal-m);box-shadow:0 0 0 3px var(--teal-gw);}
+textarea::placeholder{color:var(--muted);}
+.snd{width:38px;height:38px;border-radius:9px;flex-shrink:0;background:linear-gradient(135deg,var(--navy),var(--navy-m));border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;box-shadow:0 3px 10px rgba(26,60,94,0.2);}
+.snd:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(26,60,94,0.25);}
+.snd:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.snd svg{width:17px;height:17px;fill:white;}
+.foot{padding:5px 18px 9px;background:var(--white);font-size:10.5px;color:var(--muted);text-align:center;border-top:1px solid var(--bg);}
+
+/* modal */
+.ov{display:none;position:fixed;inset:0;z-index:200;background:rgba(10,20,40,0.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px;}
+.ov.open{display:flex;}
+.modal{background:var(--white);border-radius:16px;border:1.5px solid var(--border);padding:24px;width:100%;max-width:420px;box-shadow:0 16px 48px rgba(26,60,94,0.18);animation:pi .22s ease;}
+@keyframes pi{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+.modal h3{font-family:'Fraunces',serif;font-size:19px;color:var(--navy);margin-bottom:5px;}
+.modal>p{color:var(--muted);font-size:12.5px;margin-bottom:18px;line-height:1.6;}
+.fg{margin-bottom:12px;}
+.fg label{display:block;font-size:10.5px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;}
+.fg input,.fg textarea,.fg select{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13.5px;font-family:'DM Sans',sans-serif;transition:border-color .2s;}
+.fg input:focus,.fg textarea:focus,.fg select:focus{outline:none;border-color:var(--teal-m);}
+.fg textarea{resize:vertical;min-height:65px;}
+.mbtns{display:flex;gap:8px;margin-top:16px;}
+.mb-s{flex:1;background:linear-gradient(135deg,var(--navy),var(--navy-m));color:white;border:none;border-radius:8px;padding:10px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;}
+.mb-s:hover{transform:translateY(-1px);}
+.mb-c{background:transparent;color:var(--muted);border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13.5px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;}
+.mb-c:hover{border-color:var(--navy);color:var(--navy);}
+.sv{display:none;text-align:center;padding:12px 0;}
+.sv .ck{font-size:44px;margin-bottom:10px;}
+.sv h4{font-family:'Fraunces',serif;font-size:18px;color:var(--green);margin-bottom:6px;}
+.sv p{color:var(--muted);font-size:13px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="widget">
+  <div class="wh">
+    <div class="wh-info">
+      <div class="wh-name">AI Health Advisor · Online</div>
+    </div>
+    <button class="wh-clear" onclick="clearChat()">🗑 Clear chat</button>
+  </div>
+
+  <div class="msgs" id="msgs">
+    <div class="disclaimer">⚠️ <span><strong>Disclaimer:</strong> General health information only — not a substitute for professional medical advice. Always consult a physician.</span></div>
+    <div class="msg bot">
+      <div class="av">🤖</div>
+      <div>
+        <div class="bbl">Hello! 👋 I'm your <strong>Koit Health Advisor</strong>.<br><br>Ask me about symptoms, medicines, supplements, or attach a lab report or medicine photo for analysis. How can I help?</div>
+        <div class="mt">Just now</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="qr-wrap" id="qrWrap">
+    <button class="qr" onclick="sq('I have low Vitamin D. What should I take?')">💛 Low Vitamin D</button>
+    <button class="qr" onclick="sq('I have Type 2 diabetes. What helps?')">🩸 Diabetes</button>
+    <button class="qr" onclick="sq('I have high blood pressure. What medicines help?')">❤️ Blood Pressure</button>
+    <button class="qr" onclick="sq('What antifungal medicines do you have?')">🦠 Antifungal</button>
+    <button class="qr" onclick="sq('What women\'s health supplements do you offer?')">👩 Women\'s Health</button>
+    <button class="qr" onclick="sq('What men\'s health products do you have?')">💪 Men\'s Health</button>
+    <button class="qr" onclick="sq('I need immunity boosters and multivitamins')">🛡 Immunity</button>
+    <button class="qr" onclick="sq('What cancer support products do you have?')">🎗 Cancer Support</button>
+  </div>
+
+  <div class="prev-strip" id="ps">
+    <img class="prev-thumb" id="pt" src="" alt="">
+    <span class="prev-name" id="pn"></span>
+    <button class="prev-rm" onclick="cf()">✕</button>
+  </div>
+
+  <div class="inp-area">
+    <div class="att" title="Attach lab report or photo">📎<input type="file" id="fi" accept="image/*,.pdf" onchange="hf(this)"></div>
+    <textarea id="ti" placeholder="Describe symptoms, ask about a medicine, or attach a lab report…" rows="1" onkeydown="hk(event)" oninput="ag(this)"></textarea>
+    <button class="snd" id="sb" onclick="send()"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+  </div>
+  <div class="foot">📎 Attach lab reports or medicine photos · 🔒 Private & never stored</div>
+</div>
+
+<!-- MODAL -->
+<div class="ov" id="ov" onclick="oc(event)">
+  <div class="modal">
+    <div id="ef">
+      <h3>Product Enquiry</h3>
+      <p id="ed">Tell us what you need — we'll check availability and respond within 24 hours.</p>
+      <div class="fg"><label>Name</label><input id="en" type="text" placeholder="Your name"></div>
+      <div class="fg"><label>Email</label><input id="ee" type="email" placeholder="you@example.com"></div>
+      <div class="fg"><label>Country</label><select id="er"><option value="">Select country</option></select></div>
+      <div class="fg"><label>Product Needed</label><input id="ep" type="text" placeholder="e.g. Metformin 500mg"></div>
+      <div class="fg"><label>Additional Info</label><textarea id="eno" placeholder="Quantity, bulk order, prescription details…"></textarea></div>
+      <div class="mbtns"><button class="mb-c" onclick="cm()">Cancel</button><button class="mb-s" onclick="se()">Send Enquiry →</button></div>
+    </div>
+    <div class="sv" id="sv">
+      <div class="ck">✅</div>
+      <h4>Enquiry Received!</h4>
+      <p>Our team will contact you within <strong>24 hours</strong> with pricing and availability.</p>
+      <button class="mb-s" style="margin-top:14px;max-width:140px;margin-left:auto;margin-right:auto;display:block" onclick="cm()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Countries
+const CTRS=["Afghanistan","Albania","Algeria","Andorra","Angola","Argentina","Armenia","Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Cambodia","Cameroon","Canada","Chile","China","Colombia","Costa Rica","Croatia","Cuba","Cyprus","Czech Republic","Denmark","Dominican Republic","Ecuador","Egypt","El Salvador","Estonia","Ethiopia","Fiji","Finland","France","Georgia","Germany","Ghana","Greece","Guatemala","Honduras","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kuwait","Kyrgyzstan","Latvia","Lebanon","Libya","Lithuania","Luxembourg","Malaysia","Maldives","Malta","Mexico","Moldova","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Nepal","Netherlands","New Zealand","Nicaragua","Nigeria","North Macedonia","Norway","Oman","Pakistan","Panama","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda","Saudi Arabia","Senegal","Serbia","Singapore","Slovakia","Slovenia","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Sweden","Switzerland","Syria","Taiwan","Tanzania","Thailand","Tunisia","Turkey","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"];
+const sel=document.getElementById('er');
+CTRS.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
+
+// Catalog
+const CAT=[
+  {id:'af1',name:'Fluconazole 150mg',cat:'Antifungal',em:'🦠',desc:'Oral antifungal for candidiasis, yeast infections, and skin fungal conditions.',url:'https://www.koitbiopharma.com/category/antifungal',kw:['antifungal','fungal','yeast','candida','fluconazole','skin infection']},
+  {id:'af2',name:'Terbinafine 250mg',cat:'Antifungal',em:'🦠',desc:"Effective for nail fungus, ringworm, and athlete's foot.",url:'https://www.koitbiopharma.com/category/antifungal',kw:['antifungal','nail fungus','ringworm','athletes foot','terbinafine']},
+  {id:'db1',name:'Metformin 500mg / 1000mg',cat:'Diabetes',em:'🩸',desc:'First-line oral medicine for Type 2 diabetes.',url:'https://www.koitbiopharma.com/category/diabetes',kw:['diabetes','blood sugar','metformin','type 2','glucose']},
+  {id:'db2',name:'Glimepiride 1mg / 2mg',cat:'Diabetes',em:'🩸',desc:'Stimulates insulin release for Type 2 diabetes management.',url:'https://www.koitbiopharma.com/category/diabetes',kw:['diabetes','glimepiride','blood sugar','type 2','insulin']},
+  {id:'db3',name:'Chromium Picolinate 200mcg',cat:'Diabetes / Nutraceutical',em:'💊',desc:'Supports blood sugar metabolism and insulin sensitivity.',url:'https://www.koitbiopharma.com/category/diabetes',kw:['diabetes','blood sugar','chromium','insulin','metabolism']},
+  {id:'ca1',name:'Oncology Supportive Range',cat:'Cancer Support',em:'🎗',desc:'Supportive care supplements for cancer treatment — nausea, immunity, recovery.',url:'https://www.koitbiopharma.com/category/cancer',kw:['cancer','oncology','chemo','nausea','immunity','recovery']},
+  {id:'ca2',name:'Curcumin + Piperine 500mg',cat:'Cancer Support',em:'🌿',desc:'Anti-inflammatory turmeric extract for adjunct cancer support.',url:'https://www.koitbiopharma.com/category/cancer',kw:['cancer','curcumin','turmeric','anti-inflammatory','oncology']},
+  {id:'ca3',name:'Melatonin 5mg / 10mg',cat:'Cancer Support',em:'🌙',desc:'Sleep and antioxidant support during chemotherapy.',url:'https://www.koitbiopharma.com/category/cancer',kw:['cancer','sleep','melatonin','chemo','insomnia','antioxidant']},
+  {id:'ca4',name:'Glutamine Powder 5g',cat:'Cancer Support',em:'💊',desc:'Reduces chemo mouth sores, gut damage, and muscle wasting.',url:'https://www.koitbiopharma.com/category/cancer',kw:['cancer','chemo','glutamine','mouth sores','mucositis']},
+  {id:'ca5',name:'Vitamin C 1000mg (High Dose)',cat:'Cancer Support',em:'🍊',desc:'High-dose Vitamin C for immune and antioxidant support.',url:'https://www.koitbiopharma.com/category/cancer',kw:['vitamin c','cancer','immunity','antioxidant','recovery']},
+  {id:'wh1',name:'Folic Acid 5mg',cat:"Women's Health",em:'👩',desc:"Essential for pregnancy and neural tube defect prevention.",url:'https://www.koitbiopharma.com/category/womens-health',kw:['pregnancy','folic acid','folate','women','prenatal']},
+  {id:'wh2',name:'Iron + Folic Acid Tablets',cat:"Women's Health",em:'👩',desc:'Treats iron deficiency anaemia in women and pregnant mothers.',url:'https://www.koitbiopharma.com/category/womens-health',kw:['iron','anaemia','women','pregnancy','fatigue','folic acid']},
+  {id:'wh3',name:'Calcium + Vitamin D3',cat:"Women's Health",em:'🦴',desc:'Supports bone density and prevents osteoporosis.',url:'https://www.koitbiopharma.com/category/womens-health',kw:['calcium','vitamin d','bone','osteoporosis','women','d3']},
+  {id:'wh4',name:'Evening Primrose Oil 500mg',cat:"Women's Health",em:'🌸',desc:'For PMS, hormonal balance, and menopausal symptom relief.',url:'https://www.koitbiopharma.com/category/womens-health',kw:['pms','menopause','hormones','women','evening primrose','periods']},
+  {id:'mh1',name:'Zinc + Selenium Capsules',cat:"Men's Health",em:'💪',desc:'Supports testosterone, sperm health, and prostate function.',url:'https://www.koitbiopharma.com/category/mens-health',kw:['zinc','selenium','testosterone','men','prostate','fertility']},
+  {id:'mh2',name:"Men's Multivitamin",cat:"Men's Health",em:'💪',desc:'Complete daily multivitamin with B-complex, Zinc, and Magnesium.',url:'https://www.koitbiopharma.com/category/mens-health',kw:['multivitamin','men','energy','b12','immunity']},
+  {id:'mh3',name:'Testosterone Support Complex',cat:"Men's Health",em:'💪',desc:'Ashwagandha, Zinc, and Vitamin D blend for testosterone support.',url:'https://www.koitbiopharma.com/category/mens-health',kw:['testosterone','men','energy','vitality','libido','strength']},
+  {id:'mh4',name:'Saw Palmetto 320mg',cat:"Men's Health",em:'🌿',desc:'Herbal support for prostate health and urinary function.',url:'https://www.koitbiopharma.com/category/mens-health',kw:['prostate','men','urinary','saw palmetto','bph']},
+  {id:'bp1',name:'Amlodipine 5mg / 10mg',cat:'Blood Pressure',em:'❤️',desc:'Calcium channel blocker for high blood pressure and angina.',url:'https://www.koitbiopharma.com/category/general-health',kw:['blood pressure','hypertension','amlodipine','bp','heart','angina']},
+  {id:'bp2',name:'Telmisartan 40mg / 80mg',cat:'Blood Pressure',em:'❤️',desc:'ARB for hypertension — also protects kidneys in diabetic patients.',url:'https://www.koitbiopharma.com/category/general-health',kw:['blood pressure','hypertension','telmisartan','bp','heart','kidney']},
+  {id:'bp3',name:'Losartan 50mg / 100mg',cat:'Blood Pressure',em:'❤️',desc:'ARB for high blood pressure, heart failure, and kidney protection.',url:'https://www.koitbiopharma.com/category/general-health',kw:['blood pressure','hypertension','losartan','bp','heart failure']},
+  {id:'bp4',name:'CoQ10 100mg',cat:'Heart Health',em:'❤️',desc:'For heart health and energy — especially for statin users.',url:'https://www.koitbiopharma.com/category/general-health',kw:['coq10','heart','energy','statin','blood pressure','cholesterol']},
+  {id:'bp5',name:'Garlic Extract 1000mg',cat:'Heart Health',em:'🧄',desc:'Natural support for blood pressure and cardiovascular health.',url:'https://www.koitbiopharma.com/category/general-health',kw:['garlic','blood pressure','hypertension','cholesterol','heart']},
+  {id:'gh1',name:'Vitamin D3 60,000 IU',cat:'General Health',em:'☀️',desc:'High-potency weekly Vitamin D3 for deficiency — bone, immunity, energy.',url:'https://www.koitbiopharma.com/category/general-health',kw:['vitamin d','d3','deficiency','bone','immunity','fatigue']},
+  {id:'gh2',name:'Vitamin B12 1000mcg',cat:'General Health',em:'⚡',desc:'Methylcobalamin B12 for energy, nerve health, and B12 deficiency.',url:'https://www.koitbiopharma.com/category/general-health',kw:['b12','vitamin b12','energy','fatigue','nerve','anaemia','vegan']},
+  {id:'gh3',name:'Omega-3 Fish Oil 1000mg',cat:'General Health',em:'🐟',desc:'EPA & DHA for heart, brain, joints, and reducing inflammation.',url:'https://www.koitbiopharma.com/category/general-health',kw:['omega 3','fish oil','heart','brain','cholesterol','inflammation']},
+  {id:'gh4',name:'Magnesium Glycinate 400mg',cat:'General Health',em:'🧘',desc:'Absorbable magnesium for sleep, stress relief, and muscle relaxation.',url:'https://www.koitbiopharma.com/category/general-health',kw:['magnesium','sleep','stress','anxiety','muscle','cramps','insomnia']},
+  {id:'gh5',name:'Multivitamin + Multimineral',cat:'General Health',em:'🌿',desc:'20+ essential vitamins and minerals for daily wellness.',url:'https://www.koitbiopharma.com/category/general-health',kw:['multivitamin','general health','immunity','energy','wellness']},
+  {id:'gh6',name:'Probiotic 10 Billion CFU',cat:'General Health',em:'🦠',desc:'Multi-strain probiotic for gut health, digestion, and immunity.',url:'https://www.koitbiopharma.com/category/general-health',kw:['probiotic','gut','digestion','bloating','ibs','immunity']},
+  {id:'gh7',name:'Ashwagandha KSM-66 300mg',cat:'Ayurvedic',em:'🌿',desc:'Adaptogen for stress, cortisol reduction, energy, and thyroid support.',url:'https://www.koitbiopharma.com/category/general-health',kw:['ashwagandha','stress','anxiety','cortisol','thyroid','energy']},
+  {id:'ay1',name:'Triphala 500mg',cat:'Ayurvedic',em:'🌿',desc:'Ayurvedic formula for digestion, detox, and bowel regulation.',url:'https://www.koitbiopharma.com/category/all-products',kw:['ayurvedic','triphala','digestion','detox','gut','constipation']},
+  {id:'ay2',name:'Giloy / Guduchi Extract',cat:'Ayurvedic',em:'🌿',desc:'Immunity-boosting Ayurvedic herb — anti-inflammatory and wellness.',url:'https://www.koitbiopharma.com/category/all-products',kw:['ayurvedic','giloy','guduchi','immunity','fever','inflammation']},
+  {id:'su1',name:'Surgical Disposable Items',cat:'Surgical / B2B',em:'🩺',desc:'Gloves, syringes, bandages — bulk B2B orders available.',url:'https://www.koitbiopharma.com/category/all-products',kw:['surgical','disposable','gloves','syringes','bandage','b2b']},
+  {id:'tp1',name:'Third Party Manufacturing',cat:'B2B',em:'🏭',desc:'Custom pharma manufacturing — formulations and bulk production.',url:'https://www.koitbiopharma.com',kw:['third party','manufacturing','b2b','bulk','contract','pharma']},
+];
+
+function sysp(){
+  return `You are the Koit Health Advisor — a warm, professional AI health assistant for Koit Biopharma (koitbiopharma.com), serving customers worldwide.\n\nROLE: Help with symptoms, lab results, health concerns. Recommend products from the catalog. Analyze images when shared. If product not in catalog, suggest enquiry.\n\nCATALOG:\n${CAT.map(p=>`- [${p.id}] ${p.name} (${p.cat}): ${p.desc}`).join('\n')}\n\nFORMAT: Append PRODUCTS_JSON:[{"id":"xx"}] for product recs. Append NOT_IN_CATALOG:[{"name":"x","reason":"y"}] if not found. Respond in user's language. Add medical disclaimers for serious conditions. For emergencies tell user to call emergency services immediately.`;
+}
+
+let hist=[],pendingImg=null,busy=false,enqProd='';
+
+function hf(inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    const du=e.target.result;
+    pendingImg={base64:du.split(',')[1],mediaType:f.type||'image/jpeg',fileName:f.name};
+    const strip=document.getElementById('ps');strip.classList.add('show');
+    const th=document.getElementById('pt');
+    if(f.type.startsWith('image/')){th.src=du;th.style.display='block';}else{th.style.display='none';}
+    document.getElementById('pn').textContent=f.name;
+    document.getElementById('ti').focus();
+  };
+  r.readAsDataURL(f);inp.value='';
+}
+function cf(){pendingImg=null;document.getElementById('ps').classList.remove('show');document.getElementById('pt').src='';}
+function ag(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px';}
+function hk(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
+function now(){return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
+function sb(){const m=document.getElementById('msgs');m.scrollTop=m.scrollHeight;}
+
+function am(role,html){
+  const w=document.getElementById('msgs');
+  const d=document.createElement('div');d.className='msg '+role;
+  d.innerHTML=`<div class="av">${role==='bot'?'🤖':'👤'}</div><div><div class="bbl">${html}</div><div class="mt">${now()}</div></div>`;
+  w.appendChild(d);sb();
+}
+function showT(){const w=document.getElementById('msgs');const d=document.createElement('div');d.className='msg bot';d.id='te';d.innerHTML=`<div class="av">🤖</div><div class="bbl"><div class="typing"><span></span><span></span><span></span></div></div>`;w.appendChild(d);sb();}
+function hideT(){const t=document.getElementById('te');if(t)t.remove();}
+
+function mkPC(p){return `<div class="pc"><div class="pc-em">${p.em}</div><div><div class="pc-name">${p.name}</div><div class="pc-cat">${p.cat}</div><div class="pc-desc">${p.desc}</div><div class="pc-btns"><a class="b-buy" href="${p.url}" target="_blank">View Product →</a><button class="b-enq" onclick="oe('${p.id}','${p.name.replace(/'/g,"\\'")}')">📋 Enquire</button></div></div></div>`;}
+function mkNL(name,reason){return `<div class="nl"><div class="nl-t">💬 Not Currently Listed — We Can Help!</div><div class="nl-d"><strong>${name}</strong> isn't listed yet, but we may be able to source it. ${reason||''}<br><br>Send an enquiry and we'll respond within 24 hours.</div><div class="pc-btns"><button class="b-buy" onclick="oe('unlisted','${name.replace(/'/g,"\\'")}')">📋 Send Enquiry →</button></div></div>`;}
+
+function pr(raw){
+  let html=raw,cards='';
+  const pm=html.match(/PRODUCTS_JSON:\[([^\]]*)\]/);
+  if(pm){html=html.replace(/PRODUCTS_JSON:\[[^\]]*\]/,'').trim();try{JSON.parse('['+pm[1]+']').forEach(it=>{const p=CAT.find(c=>c.id===it.id);if(p)cards+=mkPC(p);});}catch(e){}}
+  const nm=html.match(/NOT_IN_CATALOG:\[([^\]]*)\]/s);
+  if(nm){html=html.replace(/NOT_IN_CATALOG:\[[^\]]*\]/s,'').trim();try{const it=JSON.parse('['+nm[1]+']');if(it[0])cards+=mkNL(it[0].name,it[0].reason);}catch(e){}}
+  html=html.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>').replace(/\n/g,'<br>');
+  return html+cards;
+}
+
+async function send(){
+  const inp=document.getElementById('ti');const txt=inp.value.trim();
+  if((!txt&&!pendingImg)||busy)return;
+  document.getElementById('qrWrap').style.display='none';
+  let uh=txt?txt.replace(/\n/g,'<br>'):'';
+  if(pendingImg){if(pendingImg.mediaType.startsWith('image/')){uh+=`<br><img class="img-p" src="data:${pendingImg.mediaType};base64,${pendingImg.base64}" alt=""><div class="img-l">📎 ${pendingImg.fileName}</div>`;}else{uh+=`<br><div class="img-l">📎 ${pendingImg.fileName}</div>`;}}
+  am('user',uh||'📎 Attached file');
+  const content=[];
+  if(pendingImg){if(pendingImg.mediaType.startsWith('image/')){content.push({type:'image',source:{type:'base64',media_type:pendingImg.mediaType,data:pendingImg.base64}});}content.push({type:'text',text:txt||'Please analyse this image and give health guidance and product recommendations.'});}
+  else{content.push({type:'text',text:txt});}
+  hist.push({role:'user',content});
+  inp.value='';inp.style.height='auto';cf();busy=true;document.getElementById('sb').disabled=true;showT();
+  try{
+    const res=await fetch('https://koit-health-advisor.onrender.com/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:sysp(),messages:hist})});
+    const data=await res.json();hideT();
+    if(data.content&&data.content[0]){const raw=data.content[0].text;hist.push({role:'assistant',content:raw});am('bot',pr(raw));}
+    else{am('bot','⚠️ Something went wrong. Please try again.');console.error(data);}
+  }catch(err){hideT();am('bot','⚠️ Connection error. Please try again.');console.error(err);}
+  busy=false;document.getElementById('sb').disabled=false;
+}
+
+function sq(t){document.getElementById('ti').value=t;send();}
+
+function clearChat(){
+  hist=[];
+  document.getElementById('msgs').innerHTML=`<div class="disclaimer">⚠️ <span><strong>Disclaimer:</strong> General health information only. Always consult a physician.</span></div><div class="msg bot"><div class="av">🤖</div><div><div class="bbl">Chat cleared! How can I help you? 😊</div><div class="mt">${now()}</div></div></div>`;
+  document.getElementById('qrWrap').style.display='flex';
+}
+
+// Modal
+function oe(id,name){enqProd=name;document.getElementById('ep').value=name!=='general'?name:'';document.getElementById('ed').textContent=`Enquiring about: "${name}". We'll respond within 24 hours.`;document.getElementById('ef').style.display='block';document.getElementById('sv').style.display='none';document.getElementById('ov').classList.add('open');}
+function cm(){document.getElementById('ov').classList.remove('open');}
+function oc(e){if(e.target===document.getElementById('ov'))cm();}
+function se(){const n=document.getElementById('en').value.trim();const em=document.getElementById('ee').value.trim();if(!n||!em){alert('Please fill in name and email.');return;}document.getElementById('ef').style.display='none';document.getElementById('sv').style.display='block';setTimeout(()=>{am('bot',`✅ <strong>Enquiry sent!</strong> Our team will contact you within <strong>24 hours</strong> about <strong>${enqProd}</strong>. 🙏`);cm();},1500);}
+</script>
+</body>
+</html>

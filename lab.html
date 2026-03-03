@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Koit Lab Report Analyser</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,500;0,700;1,300&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --navy:#1a3c5e;--navy-d:#0f2540;--navy-m:#1e4976;
+  --teal:#00695c;--teal-m:#00897b;--teal-lg:#e0f2f1;--teal-gw:rgba(0,137,123,0.13);
+  --green:#2e7d32;--green-lg:#e8f5e9;--green-gw:rgba(46,125,50,0.13);
+  --white:#ffffff;--cream:#faf9f6;--cream-d:#f0ede6;--cream-dd:#e8e3d8;
+  --text:#1a2e42;--muted:#7a8694;--border:#dde3ec;
+  --red:#c62828;--red-lg:#ffebee;--amber:#f57c00;--amber-lg:#fff3e0;
+  --blue:#1565c0;--blue-lg:#e3f2fd;
+  --shadow:0 2px 16px rgba(26,60,94,0.08);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{
+  height:100%;font-family:'DM Sans',sans-serif;color:var(--text);
+  background:var(--cream);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 0% 0%,rgba(0,105,92,0.05) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 40% at 100% 100%,rgba(26,60,94,0.04) 0%,transparent 60%);
+}
+.app{max-width:720px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
+
+/* ── STATUS BAR ── */
+.statusbar{
+  background:var(--white);border-bottom:1.5px solid var(--border);
+  padding:10px 18px;display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.status-dot{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--teal);}
+.status-dot::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--teal-m);display:inline-block;animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.status-actions{display:flex;gap:8px;}
+.s-btn{background:transparent;border:1.5px solid var(--border);color:var(--muted);border-radius:7px;padding:5px 12px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;}
+.s-btn:hover{border-color:var(--navy);color:var(--navy);}
+
+/* ── LANDING ── */
+#landingScreen{flex:1;padding:28px 20px 40px;display:flex;flex-direction:column;gap:20px;}
+.land-intro{text-align:center;padding:10px 0 4px;}
+.land-ic{font-size:44px;margin-bottom:12px;}
+.land-title{font-family:'Fraunces',serif;font-size:clamp(22px,5vw,28px);font-weight:500;color:var(--navy-d);margin-bottom:8px;line-height:1.25;}
+.land-sub{font-size:13.5px;color:var(--muted);line-height:1.7;max-width:480px;margin:0 auto;}
+
+/* entry cards */
+.entry-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.ec{
+  background:var(--white);border:1.5px solid var(--border);border-radius:16px;
+  padding:22px 18px;cursor:pointer;transition:all .22s;text-align:center;
+  position:relative;overflow:hidden;
+}
+.ec::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--teal-lg),transparent);opacity:0;transition:opacity .22s;}
+.ec:hover{border-color:var(--teal-m);transform:translateY(-2px);box-shadow:0 8px 28px var(--teal-gw);}
+.ec:hover::before{opacity:1;}
+.ec-ic{font-size:32px;margin-bottom:10px;position:relative;z-index:1;}
+.ec-title{font-family:'Fraunces',serif;font-size:15px;font-weight:500;color:var(--navy-d);margin-bottom:5px;position:relative;z-index:1;}
+.ec-sub{font-size:12px;color:var(--muted);line-height:1.5;position:relative;z-index:1;}
+.ec-badge{position:absolute;top:10px;right:10px;background:var(--teal-lg);color:var(--teal);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;border:1px solid rgba(0,137,123,0.2);}
+
+/* report type grid */
+.section-title{font-family:'Fraunces',serif;font-size:17px;font-weight:500;color:var(--navy-d);margin-bottom:12px;}
+.rtype-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px;}
+.rt{
+  background:var(--white);border:1.5px solid var(--border);border-radius:12px;
+  padding:13px 12px;cursor:pointer;transition:all .18s;
+  display:flex;align-items:center;gap:9px;
+}
+.rt:hover{border-color:var(--teal-m);background:var(--teal-lg);}
+.rt-ic{font-size:18px;flex-shrink:0;}
+.rt-label{font-size:13px;font-weight:600;color:var(--navy);line-height:1.3;}
+.rt-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+
+/* disclaimer */
+.disclaimer{background:#fff8e1;border:1.5px solid #ffe082;border-radius:10px;padding:10px 14px;font-size:11.5px;color:#5d4037;display:flex;gap:7px;line-height:1.55;}
+
+/* ── UPLOAD SCREEN ── */
+#uploadScreen{display:none;flex:1;flex-direction:column;padding:24px 20px 32px;gap:18px;}
+.back-btn{display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;padding:0;width:fit-content;transition:color .18s;}
+.back-btn:hover{color:var(--navy);}
+.upload-title{font-family:'Fraunces',serif;font-size:20px;font-weight:500;color:var(--navy-d);}
+.upload-sub{font-size:13px;color:var(--muted);line-height:1.6;margin-top:4px;}
+
+.upload-zone{
+  background:var(--white);border:2px dashed var(--border);border-radius:16px;
+  padding:44px 24px;text-align:center;cursor:pointer;transition:all .22s;
+  position:relative;
+}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--teal-m);background:var(--teal-lg);}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.uz-ic{font-size:40px;margin-bottom:12px;}
+.uz-title{font-weight:700;font-size:15px;color:var(--navy-d);margin-bottom:5px;}
+.uz-sub{font-size:12.5px;color:var(--muted);}
+.uz-formats{display:flex;gap:7px;justify-content:center;margin-top:12px;flex-wrap:wrap;}
+.uz-fmt{background:var(--cream-d);border-radius:6px;padding:3px 9px;font-size:11px;font-weight:700;color:var(--muted);}
+
+/* preview */
+.img-preview{display:none;background:var(--white);border:1.5px solid var(--border);border-radius:14px;padding:14px;flex-direction:column;gap:12px;}
+.img-preview.show{display:flex;}
+.prev-img{max-height:220px;border-radius:9px;object-fit:contain;border:1px solid var(--border);}
+.prev-info{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.prev-fname{font-size:13px;font-weight:600;color:var(--navy);display:flex;align-items:center;gap:6px;}
+.prev-rm{background:var(--red-lg);color:var(--red);border:1.5px solid #ef9a9a;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;}
+.prev-rm:hover{background:var(--red);color:white;}
+
+.add-context{background:var(--cream);border-radius:12px;padding:14px;}
+.ac-label{font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.ac-input{width:100%;background:var(--white);border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;font-size:13.5px;font-family:'DM Sans',sans-serif;color:var(--text);resize:none;line-height:1.55;min-height:60px;transition:border-color .2s;}
+.ac-input:focus{outline:none;border-color:var(--teal-m);box-shadow:0 0 0 3px var(--teal-gw);}
+.ac-input::placeholder{color:var(--muted);}
+
+.analyse-btn{
+  background:linear-gradient(135deg,var(--navy-d),var(--navy-m));
+  color:white;border:none;border-radius:12px;padding:14px 24px;
+  font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;
+  transition:all .22s;box-shadow:0 4px 16px rgba(26,60,94,0.22);
+  display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+}
+.analyse-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(26,60,94,0.28);}
+.analyse-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+
+/* ── MANUAL INPUT SCREEN ── */
+#manualScreen{display:none;flex:1;flex-direction:column;padding:24px 20px 32px;gap:16px;overflow-y:auto;}
+.manual-type-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:4px;}
+.mt-card{
+  background:var(--white);border:1.5px solid var(--border);border-radius:12px;
+  padding:14px 12px;cursor:pointer;transition:all .18s;
+}
+.mt-card:hover,.mt-card.sel{border-color:var(--teal-m);background:var(--teal-lg);}
+.mt-card.sel{border-width:2px;}
+.mt-ic{font-size:22px;margin-bottom:6px;}
+.mt-name{font-weight:700;font-size:13px;color:var(--navy);}
+.mt-fields{background:var(--white);border:1.5px solid var(--border);border-radius:14px;padding:18px;display:none;}
+.mt-fields.show{display:block;}
+.field-row{display:grid;grid-template-columns:1fr 100px 110px;gap:8px;align-items:center;margin-bottom:10px;}
+.field-name{font-size:13px;font-weight:600;color:var(--text);}
+.field-inp{background:var(--cream);border:1.5px solid var(--border);border-radius:8px;padding:8px 11px;font-size:13.5px;font-family:'DM Sans',sans-serif;color:var(--text);width:100%;transition:border-color .2s;}
+.field-inp:focus{outline:none;border-color:var(--teal-m);}
+.field-range{font-size:11px;color:var(--muted);line-height:1.4;}
+.field-section{font-family:'Fraunces',serif;font-size:14px;color:var(--teal);margin:14px 0 8px;font-weight:500;}
+
+/* ── ANALYSING SCREEN ── */
+#analysingScreen{display:none;flex:1;align-items:center;justify-content:center;flex-direction:column;padding:40px 24px;text-align:center;}
+.an-ring{width:64px;height:64px;border-radius:50%;border:3px solid var(--cream-dd);border-top-color:var(--teal-m);animation:spin 1s linear infinite;margin:0 auto 20px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.an-title{font-family:'Fraunces',serif;font-size:22px;font-weight:500;color:var(--navy-d);margin-bottom:8px;}
+.an-sub{font-size:13.5px;color:var(--muted);line-height:1.6;}
+.an-steps{margin-top:22px;display:flex;flex-direction:column;gap:9px;text-align:left;max-width:290px;}
+.an-step{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);transition:color .3s;}
+.an-step.done{color:var(--teal-m);}
+.an-step-ic{width:20px;text-align:center;}
+
+/* ── RESULTS SCREEN ── */
+#resultsScreen{display:none;flex:1;flex-direction:column;overflow:hidden;}
+
+.res-topbar{
+  background:linear-gradient(135deg,var(--navy-d),var(--teal));
+  padding:18px 20px;flex-shrink:0;
+}
+.res-topbar-title{font-family:'Fraunces',serif;font-size:17px;font-weight:500;color:white;margin-bottom:2px;}
+.res-topbar-sub{font-size:12px;color:rgba(255,255,255,0.5);}
+.res-topbar-btns{display:flex;gap:8px;margin-top:13px;flex-wrap:wrap;}
+.btn-dl{background:white;color:var(--navy-d);border:none;border-radius:9px;padding:8px 16px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;display:flex;align-items:center;gap:6px;}
+.btn-dl:hover{background:var(--cream);transform:translateY(-1px);}
+.btn-new{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.8);border-radius:9px;padding:8px 14px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;}
+.btn-new:hover{background:rgba(255,255,255,0.2);color:white;}
+
+.res-body{flex:1;overflow-y:auto;padding:20px;background:var(--cream);}
+.res-body::-webkit-scrollbar{width:3px;}
+.res-body::-webkit-scrollbar-thumb{background:var(--cream-dd);border-radius:3px;}
+
+/* result cards */
+.res-summary{background:var(--white);border:1.5px solid var(--border);border-radius:14px;padding:18px;margin-bottom:14px;box-shadow:var(--shadow);}
+.res-summary h2{font-family:'Fraunces',serif;font-size:17px;font-weight:500;color:var(--navy-d);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+
+/* value table */
+.val-table{width:100%;border-collapse:collapse;margin:10px 0;}
+.val-table th{background:var(--cream-d);font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700;padding:8px 12px;text-align:left;}
+.val-table td{padding:9px 12px;font-size:13px;border-bottom:1px solid var(--border);}
+.val-table tr:last-child td{border-bottom:none;}
+.val-name{font-weight:600;color:var(--text);}
+.val-result{font-weight:700;}
+.val-normal{color:var(--teal-m);}
+.val-high{color:var(--red);}
+.val-low{color:var(--amber);}
+.val-range{color:var(--muted);font-size:12px;}
+.tag{display:inline-block;border-radius:5px;padding:2px 8px;font-size:11px;font-weight:700;}
+.tag-ok{background:var(--green-lg);color:var(--green);}
+.tag-high{background:var(--red-lg);color:var(--red);}
+.tag-low{background:var(--amber-lg);color:var(--amber);}
+.tag-info{background:var(--blue-lg);color:var(--blue);}
+
+/* explanation sections */
+.expl-card{background:var(--white);border:1.5px solid var(--border);border-radius:14px;padding:18px;margin-bottom:12px;box-shadow:var(--shadow);}
+.expl-card h3{font-family:'Fraunces',serif;font-size:15px;font-weight:500;color:var(--navy-d);margin-bottom:10px;display:flex;align-items:center;gap:7px;}
+.expl-card p,.expl-card li{font-size:13.5px;line-height:1.72;color:var(--text);}
+.expl-card ul{padding-left:18px;margin-top:6px;}
+.expl-card li{margin-bottom:4px;}
+.expl-card strong{color:var(--navy);}
+
+/* alert banner */
+.alert-banner{border-radius:12px;padding:13px 16px;margin-bottom:12px;display:flex;gap:10px;align-items:flex-start;}
+.alert-banner.warn{background:var(--red-lg);border:1.5px solid #ef9a9a;}
+.alert-banner.notice{background:var(--amber-lg);border:1.5px solid #ffcc80;}
+.alert-banner.good{background:var(--green-lg);border:1.5px solid #a5d6a7;}
+.alert-ic{font-size:18px;flex-shrink:0;margin-top:1px;}
+.alert-text{font-size:13px;line-height:1.6;}
+.alert-text strong{display:block;margin-bottom:3px;font-size:13.5px;}
+
+/* supplement ask */
+.supp-ask{background:#fef9ed;border:1.5px solid #f0d080;border-radius:14px;padding:18px;margin-bottom:14px;}
+.supp-ask-title{font-family:'Fraunces',serif;font-size:16px;font-weight:500;color:var(--navy-d);margin-bottom:6px;}
+.supp-ask-sub{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:14px;}
+.supp-btns{display:flex;gap:9px;}
+.btn-yes{background:linear-gradient(135deg,var(--teal),var(--teal-m));color:white;border:none;border-radius:9px;padding:10px 22px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;}
+.btn-yes:hover{transform:translateY(-1px);box-shadow:0 5px 14px var(--teal-gw);}
+.btn-no{background:white;color:var(--muted);border:1.5px solid var(--border);border-radius:9px;padding:10px 18px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;}
+.btn-no:hover{border-color:var(--navy);color:var(--navy);}
+
+/* product cards */
+.prod-card{background:var(--green-lg);border:1.5px solid #a5d6a7;border-radius:12px;padding:14px;margin-bottom:10px;display:flex;gap:12px;}
+.p-em{font-size:22px;flex-shrink:0;}
+.p-name{font-weight:700;font-size:13.5px;color:var(--green);margin-bottom:2px;}
+.p-cat{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px;}
+.p-desc{font-size:13px;color:#444;line-height:1.5;margin-bottom:9px;}
+.p-btns{display:flex;gap:7px;flex-wrap:wrap;}
+.b-buy{background:linear-gradient(135deg,var(--green),#43a047);color:white;border:none;border-radius:7px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;display:inline-block;transition:all .18s;}
+.b-buy:hover{transform:translateY(-1px);}
+.b-enq{background:white;color:var(--navy);border:1.5px solid var(--navy);border-radius:7px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .18s;}
+.b-enq:hover{background:var(--navy);color:white;}
+.supp-section-title{font-family:'Fraunces',serif;font-size:17px;color:var(--navy-d);margin-bottom:12px;}
+.supp-decline{background:var(--cream-d);border-radius:12px;padding:14px 18px;font-size:13.5px;color:var(--muted);text-align:center;line-height:1.6;}
+
+@media(max-width:520px){
+  .entry-cards{grid-template-columns:1fr;}
+  .manual-type-grid{grid-template-columns:1fr 1fr;}
+  .field-row{grid-template-columns:1fr 80px;}
+  .field-range{display:none;}
+  .rtype-grid{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- STATUS BAR -->
+<div class="statusbar">
+  <div class="status-dot">Lab Report Analyser · Online</div>
+  <div class="status-actions">
+    <button class="s-btn" onclick="goHome()">↺ Start Over</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     LANDING
+══════════════════════════════ -->
+<div id="landingScreen">
+  <div class="land-intro">
+    <div class="land-ic">🧪</div>
+    <div class="land-title">Understand Your Lab Reports</div>
+    <div class="land-sub">Upload a photo of your report or enter your values manually. Our AI explains every result in simple language, flags anything abnormal, and tells you what to do next.</div>
+  </div>
+
+  <div class="entry-cards">
+    <div class="ec" onclick="showUpload('general')">
+      <div class="ec-badge">Recommended</div>
+      <div class="ec-ic">📷</div>
+      <div class="ec-title">Upload Photo</div>
+      <div class="ec-sub">Take a photo of your report or upload a scan. AI reads it directly.</div>
+    </div>
+    <div class="ec" onclick="showManual()">
+      <div class="ec-ic">✏️</div>
+      <div class="ec-title">Enter Values</div>
+      <div class="ec-sub">Type in your results manually if you don't have a photo.</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-title">Or select your report type</div>
+    <div class="rtype-grid">
+      <div class="rt" onclick="showUpload('cbc')"><div class="rt-ic">🩸</div><div><div class="rt-label">CBC / Blood Count</div><div class="rt-sub">Haemoglobin, WBC, Platelets</div></div></div>
+      <div class="rt" onclick="showUpload('lipid')"><div class="rt-ic">❤️</div><div><div class="rt-label">Lipid Profile</div><div class="rt-sub">Cholesterol, LDL, HDL</div></div></div>
+      <div class="rt" onclick="showUpload('diabetes')"><div class="rt-ic">🩸</div><div><div class="rt-label">Blood Sugar / HbA1c</div><div class="rt-sub">Fasting glucose, HbA1c</div></div></div>
+      <div class="rt" onclick="showUpload('thyroid')"><div class="rt-ic">🦋</div><div><div class="rt-label">Thyroid (TSH/T3/T4)</div><div class="rt-sub">Thyroid function tests</div></div></div>
+      <div class="rt" onclick="showUpload('liver')"><div class="rt-ic">🫀</div><div><div class="rt-label">Liver Function (LFT)</div><div class="rt-sub">ALT, AST, Bilirubin</div></div></div>
+      <div class="rt" onclick="showUpload('kidney')"><div class="rt-ic">🫘</div><div><div class="rt-label">Kidney Function (KFT)</div><div class="rt-sub">Creatinine, Urea, eGFR</div></div></div>
+      <div class="rt" onclick="showUpload('vitamins')"><div class="rt-ic">☀️</div><div><div class="rt-label">Vitamins (D / B12)</div><div class="rt-sub">Deficiency tests</div></div></div>
+      <div class="rt" onclick="showUpload('urine')"><div class="rt-ic">🧫</div><div><div class="rt-label">Urine Analysis</div><div class="rt-sub">Routine urine test</div></div></div>
+      <div class="rt" onclick="showUpload('iron')"><div class="rt-ic">🔴</div><div><div class="rt-label">Iron / Anaemia Panel</div><div class="rt-sub">Ferritin, TIBC, Serum Iron</div></div></div>
+      <div class="rt" onclick="showUpload('hormones')"><div class="rt-ic">⚗️</div><div><div class="rt-label">Hormone Panel</div><div class="rt-sub">Testosterone, Oestrogen, FSH</div></div></div>
+    </div>
+  </div>
+
+  <div class="disclaimer">⚠️ <span>This tool explains lab results in simple language for informational purposes only. It does not provide a medical diagnosis. Always consult your doctor to interpret results and decide on treatment.</span></div>
+</div>
+
+<!-- ══════════════════════════════
+     UPLOAD SCREEN
+══════════════════════════════ -->
+<div id="uploadScreen">
+  <button class="back-btn" onclick="goHome()">← Back</button>
+  <div>
+    <div class="upload-title" id="uploadTitle">Upload Your Lab Report</div>
+    <div class="upload-sub">Take a clear photo or upload a scan. Make sure all values are visible and legible.</div>
+  </div>
+
+  <div class="upload-zone" id="uploadZone"
+    ondragover="event.preventDefault();this.classList.add('drag')"
+    ondragleave="this.classList.remove('drag')"
+    ondrop="handleDrop(event)">
+    <input type="file" id="fileIn" accept="image/*" onchange="handleFile(this)">
+    <div class="uz-ic">📄</div>
+    <div class="uz-title">Drop your report here or tap to upload</div>
+    <div class="uz-sub">Take a photo directly from your phone camera</div>
+    <div class="uz-formats">
+      <span class="uz-fmt">JPG</span>
+      <span class="uz-fmt">PNG</span>
+      <span class="uz-fmt">HEIC</span>
+      <span class="uz-fmt">WEBP</span>
+    </div>
+  </div>
+
+  <div class="img-preview" id="imgPreview">
+    <img class="prev-img" id="prevImg" src="" alt="Lab report preview">
+    <div class="prev-info">
+      <div class="prev-fname">📄 <span id="prevFname">report.jpg</span></div>
+      <button class="prev-rm" onclick="clearImg()">Remove</button>
+    </div>
+  </div>
+
+  <div class="add-context">
+    <div class="ac-label">Add context (optional)</div>
+    <textarea class="ac-input" id="contextInput" placeholder="e.g. I'm 35 years old, diabetic, on Metformin 500mg. Doctor said my cholesterol is high…" rows="3"></textarea>
+  </div>
+
+  <button class="analyse-btn" id="analyseBtn" onclick="analyseReport()" disabled>
+    🔬 Analyse My Report
+  </button>
+</div>
+
+<!-- ══════════════════════════════
+     MANUAL INPUT SCREEN
+══════════════════════════════ -->
+<div id="manualScreen">
+  <button class="back-btn" onclick="goHome()">← Back</button>
+  <div>
+    <div class="upload-title">Enter Your Values</div>
+    <div class="upload-sub">Select your test type, then enter the values from your report.</div>
+  </div>
+
+  <div class="manual-type-grid">
+    <div class="mt-card" onclick="selectManualType('cbc',this)"><div class="mt-ic">🩸</div><div class="mt-name">CBC / Blood Count</div></div>
+    <div class="mt-card" onclick="selectManualType('lipid',this)"><div class="mt-ic">❤️</div><div class="mt-name">Lipid Profile</div></div>
+    <div class="mt-card" onclick="selectManualType('diabetes',this)"><div class="mt-ic">🩸</div><div class="mt-name">Blood Sugar</div></div>
+    <div class="mt-card" onclick="selectManualType('thyroid',this)"><div class="mt-ic">🦋</div><div class="mt-name">Thyroid</div></div>
+    <div class="mt-card" onclick="selectManualType('vitamins',this)"><div class="mt-ic">☀️</div><div class="mt-name">Vitamins D/B12</div></div>
+    <div class="mt-card" onclick="selectManualType('liver',this)"><div class="mt-ic">🫀</div><div class="mt-name">Liver (LFT)</div></div>
+  </div>
+
+  <div class="mt-fields" id="manualFields"></div>
+
+  <div class="add-context">
+    <div class="ac-label">Your context (optional)</div>
+    <textarea class="ac-input" id="manualContextInput" placeholder="Age, gender, health conditions, medications…" rows="2"></textarea>
+  </div>
+
+  <button class="analyse-btn" id="manualAnalyseBtn" onclick="analyseManual()" style="display:none">
+    🔬 Analyse My Values
+  </button>
+</div>
+
+<!-- ══════════════════════════════
+     ANALYSING
+══════════════════════════════ -->
+<div id="analysingScreen">
+  <div class="an-ring"></div>
+  <div class="an-title">Analysing your report…</div>
+  <div class="an-sub">Reading values, checking ranges,<br>and preparing your explanation.</div>
+  <div class="an-steps">
+    <div class="an-step" id="as1"><span class="an-step-ic">⏳</span> Reading report values</div>
+    <div class="an-step" id="as2"><span class="an-step-ic">⏳</span> Checking against normal ranges</div>
+    <div class="an-step" id="as3"><span class="an-step-ic">⏳</span> Identifying abnormal markers</div>
+    <div class="an-step" id="as4"><span class="an-step-ic">⏳</span> Preparing your explanation</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     RESULTS
+══════════════════════════════ -->
+<div id="resultsScreen">
+  <div class="res-topbar">
+    <div class="res-topbar-title">Your Lab Report Analysis 🧪</div>
+    <div class="res-topbar-sub" id="resTopSub">Results explained in simple language</div>
+    <div class="res-topbar-btns">
+      <button class="btn-dl" onclick="downloadPDF()">⬇️ Download PDF</button>
+      <button class="btn-new" onclick="goHome()">↺ New Report</button>
+    </div>
+  </div>
+  <div class="res-body" id="resBody"></div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+// ═══════════════════════════════════════
+// CATALOG
+// ═══════════════════════════════════════
+const CAT=[
+  {id:'gh1',name:'Vitamin D3 60,000 IU',cat:'General Health',em:'☀️',desc:'High-potency weekly Vitamin D3 for deficiency — bone, immunity, energy.',url:'https://www.koitbiopharma.com/category/general-health',tags:['vitamin d','d3','deficiency','bone','immunity','fatigue']},
+  {id:'gh2',name:'Vitamin B12 1000mcg',cat:'General Health',em:'⚡',desc:'Methylcobalamin B12 for energy, nerve health, and B12 deficiency.',url:'https://www.koitbiopharma.com/category/general-health',tags:['b12','vitamin b12','energy','fatigue','nerve','anaemia']},
+  {id:'gh3',name:'Omega-3 Fish Oil 1000mg',cat:'General Health',em:'🐟',desc:'EPA & DHA for heart, brain, joints, and reducing inflammation.',url:'https://www.koitbiopharma.com/category/general-health',tags:['omega 3','heart','cholesterol','ldl','inflammation','triglycerides']},
+  {id:'gh4',name:'Magnesium Glycinate 400mg',cat:'General Health',em:'🧘',desc:'Absorbable magnesium for sleep, stress, and muscle relaxation.',url:'https://www.koitbiopharma.com/category/general-health',tags:['magnesium','sleep','stress','muscle','cramps']},
+  {id:'wh2',name:'Iron + Folic Acid',cat:"Women's Health",em:'👩',desc:'Treats iron deficiency anaemia — haemoglobin support.',url:'https://www.koitbiopharma.com/category/womens-health',tags:['iron','anaemia','haemoglobin','ferritin','women','fatigue']},
+  {id:'wh3',name:'Calcium + Vitamin D3',cat:'Bone Health',em:'🦴',desc:'Supports bone density and calcium absorption.',url:'https://www.koitbiopharma.com/category/womens-health',tags:['calcium','bone','osteoporosis','vitamin d','d3']},
+  {id:'db3',name:'Chromium Picolinate 200mcg',cat:'Diabetes',em:'💊',desc:'Supports blood sugar metabolism and insulin sensitivity.',url:'https://www.koitbiopharma.com/category/diabetes',tags:['diabetes','blood sugar','glucose','hba1c','insulin']},
+  {id:'bp4',name:'CoQ10 100mg',cat:'Heart Health',em:'❤️',desc:'Heart health and energy — especially for statin users.',url:'https://www.koitbiopharma.com/category/general-health',tags:['heart','cholesterol','coq10','statin','cardiovascular','ldl']},
+  {id:'bp5',name:'Garlic Extract 1000mg',cat:'Heart Health',em:'🧄',desc:'Natural support for cholesterol and cardiovascular health.',url:'https://www.koitbiopharma.com/category/general-health',tags:['cholesterol','blood pressure','heart','triglycerides','cardiovascular']},
+  {id:'gh7',name:'Ashwagandha KSM-66 300mg',cat:'Ayurvedic',em:'🌿',desc:'Adaptogen for stress, thyroid support, and cortisol reduction.',url:'https://www.koitbiopharma.com/category/general-health',tags:['thyroid','tsh','stress','cortisol','energy','fatigue']},
+  {id:'gh6',name:'Probiotic 10 Billion CFU',cat:'General Health',em:'🦠',desc:'Multi-strain probiotic for gut health and immunity.',url:'https://www.koitbiopharma.com/category/general-health',tags:['gut','digestion','immunity','liver','inflammation']},
+  {id:'ca2',name:'Curcumin + Piperine 500mg',cat:'Anti-inflammatory',em:'🌿',desc:'Anti-inflammatory turmeric for liver and joint support.',url:'https://www.koitbiopharma.com/category/cancer',tags:['inflammation','liver','alt','ast','joints','anti-inflammatory']},
+];
+
+// ═══════════════════════════════════════
+// MANUAL TEST FIELDS CONFIG
+// ═══════════════════════════════════════
+const MANUAL_FIELDS = {
+  cbc: [
+    {name:'Haemoglobin (Hb)',unit:'g/dL',range:'Male: 13.5–17.5 | Female: 12–15.5'},
+    {name:'RBC Count',unit:'million/μL',range:'Male: 4.5–5.9 | Female: 4.0–5.2'},
+    {name:'WBC Count',unit:'cells/μL',range:'4,500–11,000'},
+    {name:'Platelets',unit:'lakhs/μL',range:'1.5–4.0'},
+    {name:'Haematocrit (PCV)',unit:'%',range:'Male: 41–53 | Female: 36–46'},
+    {name:'MCV',unit:'fL',range:'80–100'},
+    {name:'MCH',unit:'pg',range:'27–33'},
+  ],
+  lipid: [
+    {name:'Total Cholesterol',unit:'mg/dL',range:'Desirable: <200'},
+    {name:'LDL Cholesterol',unit:'mg/dL',range:'Optimal: <100 | Borderline: 130–159'},
+    {name:'HDL Cholesterol',unit:'mg/dL',range:'Male: >40 | Female: >50'},
+    {name:'Triglycerides',unit:'mg/dL',range:'Normal: <150'},
+    {name:'VLDL',unit:'mg/dL',range:'2–30'},
+    {name:'Non-HDL Cholesterol',unit:'mg/dL',range:'<130'},
+  ],
+  diabetes: [
+    {name:'Fasting Blood Glucose',unit:'mg/dL',range:'Normal: 70–100 | Pre-diabetic: 100–125'},
+    {name:'Post-Prandial Glucose',unit:'mg/dL',range:'Normal: <140 | Diabetic: >200'},
+    {name:'HbA1c',unit:'%',range:'Normal: <5.7 | Pre-diabetic: 5.7–6.4 | Diabetic: ≥6.5'},
+    {name:'Random Blood Glucose',unit:'mg/dL',range:'Normal: <140'},
+    {name:'Insulin (Fasting)',unit:'μIU/mL',range:'2.6–24.9'},
+  ],
+  thyroid: [
+    {name:'TSH',unit:'mIU/L',range:'0.4–4.0'},
+    {name:'Free T3 (FT3)',unit:'pg/mL',range:'2.3–4.2'},
+    {name:'Free T4 (FT4)',unit:'ng/dL',range:'0.8–1.8'},
+    {name:'Total T3',unit:'ng/dL',range:'80–200'},
+    {name:'Total T4',unit:'μg/dL',range:'5.0–12.0'},
+    {name:'Anti-TPO Antibodies',unit:'IU/mL',range:'<35'},
+  ],
+  vitamins: [
+    {name:'Vitamin D (25-OH)',unit:'ng/mL',range:'Deficient: <20 | Insufficient: 20–30 | Normal: 30–100'},
+    {name:'Vitamin B12',unit:'pg/mL',range:'Normal: 200–900 | Deficient: <200'},
+    {name:'Folate (Folic Acid)',unit:'ng/mL',range:'Normal: >3.0'},
+    {name:'Vitamin A',unit:'μg/dL',range:'20–60'},
+    {name:'Zinc',unit:'μg/dL',range:'70–120'},
+  ],
+  liver: [
+    {name:'ALT (SGPT)',unit:'U/L',range:'Male: 7–56 | Female: 7–45'},
+    {name:'AST (SGOT)',unit:'U/L',range:'Male: 10–40 | Female: 9–32'},
+    {name:'Alkaline Phosphatase (ALP)',unit:'U/L',range:'44–147'},
+    {name:'Total Bilirubin',unit:'mg/dL',range:'0.2–1.2'},
+    {name:'Direct Bilirubin',unit:'mg/dL',range:'0–0.3'},
+    {name:'Total Protein',unit:'g/dL',range:'6.0–8.3'},
+    {name:'Albumin',unit:'g/dL',range:'3.5–5.0'},
+    {name:'GGT',unit:'U/L',range:'Male: 8–61 | Female: 5–36'},
+  ],
+};
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+let pendingImg = null;
+let reportType = 'general';
+let analysisText = '';
+let currentContext = '';
+
+// ═══════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════
+function showScreen(id) {
+  ['landingScreen','uploadScreen','manualScreen','analysingScreen','resultsScreen']
+    .forEach(s => {
+      const el = document.getElementById(s);
+      el.style.display = 'none';
+      el.style.flex = '';
+    });
+  const target = document.getElementById(id);
+  target.style.display = 'flex';
+  target.style.flex = '1';
+  target.style.flexDirection = 'column';
+}
+
+function goHome() {
+  pendingImg = null; analysisText = ''; reportType = 'general';
+  document.getElementById('fileIn').value = '';
+  document.getElementById('imgPreview').classList.remove('show');
+  document.getElementById('analyseBtn').disabled = true;
+  document.getElementById('contextInput').value = '';
+  document.getElementById('manualContextInput').value = '';
+  document.getElementById('manualFields').innerHTML = '';
+  document.getElementById('manualFields').classList.remove('show');
+  document.getElementById('manualAnalyseBtn').style.display = 'none';
+  document.querySelectorAll('.mt-card').forEach(c => c.classList.remove('sel'));
+  showScreen('landingScreen');
+}
+
+function showUpload(type) {
+  reportType = type;
+  const titles = {
+    general:'Upload Your Lab Report',cbc:'Upload CBC / Blood Count Report',
+    lipid:'Upload Lipid Profile Report',diabetes:'Upload Blood Sugar / HbA1c Report',
+    thyroid:'Upload Thyroid Function Report',liver:'Upload Liver Function (LFT) Report',
+    kidney:'Upload Kidney Function (KFT) Report',vitamins:'Upload Vitamin D / B12 Report',
+    urine:'Upload Urine Analysis Report',iron:'Upload Iron / Anaemia Panel',
+    hormones:'Upload Hormone Panel Report'
+  };
+  document.getElementById('uploadTitle').textContent = titles[type] || 'Upload Your Lab Report';
+  showScreen('uploadScreen');
+}
+
+function showManual() { showScreen('manualScreen'); }
+
+// ═══════════════════════════════════════
+// FILE HANDLING
+// ═══════════════════════════════════════
+function handleFile(inp) {
+  const f = inp.files[0]; if (!f) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const du = e.target.result;
+    pendingImg = { base64: du.split(',')[1], mediaType: f.type || 'image/jpeg', name: f.name };
+    document.getElementById('prevImg').src = du;
+    document.getElementById('prevFname').textContent = f.name;
+    document.getElementById('imgPreview').classList.add('show');
+    document.getElementById('uploadZone').style.display = 'none';
+    document.getElementById('analyseBtn').disabled = false;
+  };
+  reader.readAsDataURL(f); inp.value = '';
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag');
+  const f = e.dataTransfer.files[0]; if (!f) return;
+  const fakeInp = { files: [f] }; handleFile(fakeInp);
+}
+
+function clearImg() {
+  pendingImg = null;
+  document.getElementById('prevImg').src = '';
+  document.getElementById('imgPreview').classList.remove('show');
+  document.getElementById('uploadZone').style.display = '';
+  document.getElementById('analyseBtn').disabled = true;
+}
+
+// ═══════════════════════════════════════
+// MANUAL INPUT
+// ═══════════════════════════════════════
+function selectManualType(type, el) {
+  document.querySelectorAll('.mt-card').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  const fields = MANUAL_FIELDS[type];
+  if (!fields) return;
+  const mf = document.getElementById('manualFields');
+  mf.classList.add('show');
+  mf.innerHTML = `<table class="val-table" style="margin:0;">
+    <thead><tr><th>Test</th><th>Your Value</th><th>Normal Range</th></tr></thead>
+    <tbody>
+      ${fields.map((f,i) => `
+        <tr>
+          <td class="val-name">${f.name}</td>
+          <td><input class="field-inp" id="mf_${i}" placeholder="—" style="width:90px;"> <span style="font-size:11px;color:var(--muted);">${f.unit}</span></td>
+          <td class="field-range">${f.range}</td>
+        </tr>`).join('')}
+    </tbody>
+  </table>`;
+  document.getElementById('manualAnalyseBtn').style.display = 'flex';
+  document.getElementById('manualAnalyseBtn').dataset.type = type;
+  mf.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function getManualValues() {
+  const type = document.getElementById('manualAnalyseBtn').dataset.type;
+  const fields = MANUAL_FIELDS[type];
+  if (!fields) return '';
+  const vals = fields.map((f, i) => {
+    const v = document.getElementById('mf_' + i)?.value?.trim();
+    return v ? `${f.name}: ${v} ${f.unit} (Normal: ${f.range})` : null;
+  }).filter(Boolean);
+  return `Test Type: ${type.toUpperCase()}\n${vals.join('\n')}`;
+}
+
+// ═══════════════════════════════════════
+// ANALYSE
+// ═══════════════════════════════════════
+const SYS = `You are a warm, expert medical laboratory analyst for Koit Biopharma. Your job is to explain lab reports clearly to patients — like a knowledgeable, reassuring doctor who speaks plain English.
+
+When given a lab report (image or values), provide a structured analysis:
+
+## Overall Summary
+2-3 sentences summarising the overall picture. Mention how many values are normal, how many need attention.
+
+## Your Results at a Glance
+For each test value identified, present it with its status. Format as:
+VALUE_TABLE_START
+TestName | Value | Unit | Status (NORMAL/HIGH/LOW/BORDERLINE) | Normal Range
+VALUE_TABLE_END
+
+## What Your Results Mean
+Explain each ABNORMAL or BORDERLINE result in plain language — what the test measures, why it might be off, what it means for their health. Use simple language, avoid jargon.
+
+## What's Normal ✅
+Brief mention of values that are within range (don't elaborate too much).
+
+## What To Do Next
+3-5 specific, actionable recommendations. Include:
+- Lifestyle changes if relevant
+- Whether they need to see a doctor (be specific about urgency)
+- Follow-up tests if needed
+- Dietary/supplement considerations (do NOT mention specific products — these will be suggested separately)
+- Mention tracking with a health app like MyFitnessPal, Google Fit, or Apple Health if relevant
+
+## Important Notice
+Any urgent warnings if values are severely abnormal. Always recommend consulting a doctor for diagnosis and treatment.
+
+RULES:
+- Be reassuring but accurate — don't downplay serious results
+- If values are missing from the image, note which ones you couldn't read
+- Respond in the same language the user is writing in
+- Do NOT recommend specific supplement products — that happens separately
+- Add ⚠️ prefix for any urgent/serious findings`;
+
+async function runAnalysis(messages) {
+  showScreen('analysingScreen');
+  const steps = ['as1','as2','as3','as4'];
+  steps.forEach((s,i) => setTimeout(() => {
+    document.getElementById(s).classList.add('done');
+    document.getElementById(s).querySelector('.an-step-ic').textContent = '✅';
+  }, (i+1)*900));
+
+  try {
+    const res = await fetch('https://koit-health-advisor.onrender.com/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        system: SYS,
+        messages
+      })
+    });
+    const data = await res.json();
+    if (data.content && data.content[0]) {
+      analysisText = data.content[0].text;
+      setTimeout(() => {
+        showScreen('resultsScreen');
+        document.getElementById('resTopSub').textContent =
+          reportType !== 'general' ? `${reportType.toUpperCase()} Report · ${new Date().toLocaleDateString()}` : `Lab Report · ${new Date().toLocaleDateString()}`;
+        renderResults();
+      }, 4000);
+    } else { showError(); }
+  } catch(e) { console.error(e); showError(); }
+}
+
+function showError() {
+  showScreen('landingScreen');
+  alert('Connection error. Please check your internet and try again. (Note: works only when hosted on GitHub Pages, not locally.)');
+}
+
+async function analyseReport() {
+  if (!pendingImg) return;
+  currentContext = document.getElementById('contextInput').value.trim();
+  const content = [
+    { type: 'image', source: { type: 'base64', media_type: pendingImg.mediaType, data: pendingImg.base64 } },
+    { type: 'text', text: `Please analyse this lab report.\n${currentContext ? 'Patient context: ' + currentContext : ''}` }
+  ];
+  await runAnalysis([{ role: 'user', content }]);
+}
+
+async function analyseManual() {
+  const vals = getManualValues();
+  if (!vals) { alert('Please select a test type and enter at least one value.'); return; }
+  currentContext = document.getElementById('manualContextInput').value.trim();
+  const text = `Please analyse these lab values:\n\n${vals}\n${currentContext ? '\nPatient context: ' + currentContext : ''}`;
+  await runAnalysis([{ role: 'user', content: text }]);
+}
+
+// ═══════════════════════════════════════
+// RENDER RESULTS
+// ═══════════════════════════════════════
+function renderResults() {
+  const body = document.getElementById('resBody');
+  let html = `<div class="disclaimer">⚠️ <span><strong>Medical Disclaimer:</strong> This analysis is for educational purposes only and does not constitute a medical diagnosis. Always consult your doctor or a qualified healthcare professional to interpret your results and decide on treatment.</span></div>`;
+
+  // parse value table if present
+  const tableMatch = analysisText.match(/VALUE_TABLE_START\n?([\s\S]*?)\nVALUE_TABLE_END/);
+  let tableHTML = '';
+  let cleanText = analysisText;
+
+  if (tableMatch) {
+    const rows = tableMatch[1].trim().split('\n').filter(r => r.trim());
+    let hasAbnormal = false;
+    let tableRows = rows.map(row => {
+      const parts = row.split('|').map(p => p.trim());
+      if (parts.length < 4) return '';
+      const [name, val, unit, status, range] = parts;
+      let cls = 'val-normal', tag = 'tag-ok', tagText = '✅ Normal';
+      if (status?.includes('HIGH')) { cls='val-high'; tag='tag-high'; tagText='🔴 High'; hasAbnormal=true; }
+      else if (status?.includes('LOW')) { cls='val-low'; tag='tag-low'; tagText='🟡 Low'; hasAbnormal=true; }
+      else if (status?.includes('BORDERLINE')) { cls='val-low'; tag='tag-info'; tagText='⚠️ Borderline'; hasAbnormal=true; }
+      return `<tr><td class="val-name">${name||''}</td><td class="${cls}" style="font-weight:700">${val||'—'} <span style="font-size:11px;color:var(--muted)">${unit||''}</span></td><td><span class="tag ${tag}">${tagText}</span></td><td class="val-range">${range||''}</td></tr>`;
+    }).join('');
+
+    if (tableRows) {
+      // alert banner based on findings
+      if (hasAbnormal) {
+        html += `<div class="alert-banner notice"><div class="alert-ic">⚠️</div><div class="alert-text"><strong>Some values need attention</strong>Read the explanation below and consult your doctor about any abnormal results.</div></div>`;
+      } else {
+        html += `<div class="alert-banner good"><div class="alert-ic">✅</div><div class="alert-text"><strong>All values within normal range</strong>Your results look good! Continue your healthy lifestyle.</div></div>`;
+      }
+
+      tableHTML = `<div class="res-summary">
+        <h2>📊 Your Results at a Glance</h2>
+        <table class="val-table">
+          <thead><tr><th>Test</th><th>Your Value</th><th>Status</th><th>Normal Range</th></tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>`;
+    }
+    cleanText = analysisText.replace(/VALUE_TABLE_START[\s\S]*?VALUE_TABLE_END\n?/,'').trim();
+  }
+
+  html += tableHTML;
+
+  // render remaining text sections
+  const sections = cleanText.split(/(?=## )/);
+  sections.forEach(section => {
+    if (!section.trim()) return;
+    if (section.includes('Your Results at a Glance')) return; // skip if duplicate
+    const lines = section.split('\n');
+    const title = lines[0].replace('## ','').trim();
+    const content = lines.slice(1).join('\n').trim();
+    if (!content) return;
+    const rendered = content
+      .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g,'<em>$1</em>')
+      .replace(/^- (.*)/gm,'<li>$1</li>')
+      .replace(/(<li>[\s\S]*?<\/li>)/g, m => '<ul>'+m+'</ul>')
+      .replace(/\n\n/g,'</p><p>')
+      .replace(/\n/g,'<br>');
+    html += `<div class="expl-card"><h3>${getSecIc(title)} ${title}</h3><p>${rendered}</p></div>`;
+  });
+
+  // supplement ask
+  html += `<div class="supp-ask" id="suppAsk">
+    <div class="supp-ask-title">💊 Would you like supplement recommendations?</div>
+    <div class="supp-ask-sub">Based on your lab results, we can suggest relevant nutraceutical products from our catalog — vitamins, minerals, and supplements that may help address what we found.</div>
+    <div class="supp-btns">
+      <button class="btn-yes" onclick="showSupplements()">Yes, show me →</button>
+      <button class="btn-no" onclick="declineSupplements()">No thanks</button>
+    </div>
+  </div>`;
+
+  body.innerHTML = html;
+}
+
+function getSecIc(title) {
+  const map = {'Overall Summary':'🔍','What Your Results Mean':'💡',"What's Normal":'✅','What To Do Next':'📋','Important Notice':'⚠️'};
+  return map[title] || '📄';
+}
+
+// ═══════════════════════════════════════
+// SUPPLEMENT FLOW
+// ═══════════════════════════════════════
+async function showSupplements() {
+  document.getElementById('suppAsk').innerHTML = `<div style="text-align:center;padding:14px;color:var(--muted);font-size:13.5px;"><div class="an-ring" style="width:32px;height:32px;margin:0 auto 10px;border-width:2px;"></div>Finding supplements based on your results…</div>`;
+
+  const catList = CAT.map(p => `[${p.id}] ${p.name}: ${p.desc} | Tags: ${p.tags.join(', ')}`).join('\n');
+
+  try {
+    const res = await fetch('https://koit-health-advisor.onrender.com/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 400,
+        system: `Based on a patient's lab report analysis, select the most relevant supplements from this catalog. Return ONLY a JSON array of IDs — no other text. Return 2-5 products maximum. Format: ["id1","id2"]\n\nCATALOG:\n${catList}`,
+        messages: [{ role: 'user', content: `Lab analysis summary:\n${analysisText.substring(0,800)}` }]
+      })
+    });
+    const data = await res.json();
+    let ids = [];
+    if (data.content?.[0]) {
+      try { const raw = data.content[0].text.replace(/```json|```/g,'').trim(); ids = JSON.parse(raw); }
+      catch(e) { const m = data.content[0].text.match(/\[.*?\]/s); if(m) ids = JSON.parse(m[0]); }
+    }
+    const products = ids.map(id => CAT.find(p => p.id === id)).filter(Boolean);
+    let html = `<div class="supp-section-title">🌿 Recommended for Your Results</div>`;
+    if (!products.length) {
+      html += `<div class="supp-decline">No specific supplements matched. <a href="https://www.koitbiopharma.com/category/all-products" target="_blank" style="color:var(--teal);font-weight:700;">Browse our full catalog →</a></div>`;
+    } else {
+      products.forEach(p => {
+        html += `<div class="prod-card"><div class="p-em">${p.em}</div><div><div class="p-name">${p.name}</div><div class="p-cat">${p.cat}</div><div class="p-desc">${p.desc}</div><div class="p-btns"><a class="b-buy" href="${p.url}" target="_blank">View Product →</a><button class="b-enq" onclick="window.open('${p.url}','_blank')">📋 Enquire</button></div></div></div>`;
+      });
+    }
+    document.getElementById('suppAsk').innerHTML = html;
+  } catch(e) {
+    document.getElementById('suppAsk').innerHTML = `<div class="supp-decline">Couldn't load supplements. <a href="https://www.koitbiopharma.com/category/all-products" target="_blank" style="color:var(--teal);font-weight:700;">Browse our catalog →</a></div>`;
+  }
+}
+
+function declineSupplements() {
+  document.getElementById('suppAsk').innerHTML = `<div class="supp-decline">No problem! Your analysis is complete. If you'd like supplements in future, visit our <a href="https://www.koitbiopharma.com/category/all-products" target="_blank" style="color:var(--teal);font-weight:700;">products page</a>. 🌿</div>`;
+}
+
+// ═══════════════════════════════════════
+// PDF DOWNLOAD
+// ═══════════════════════════════════════
+function downloadPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const pw = doc.internal.pageSize.getWidth();
+  const ph = doc.internal.pageSize.getHeight();
+  const margin = 18;
+  const usable = pw - margin * 2;
+  let y = 0;
+
+  function addPage() {
+    doc.addPage(); y = margin;
+    doc.setFillColor(15,37,64); doc.rect(0,0,pw,10,'F');
+    doc.setFontSize(8); doc.setTextColor(255,255,255);
+    doc.text('Koit Biopharma — Lab Report Analysis',margin,7);
+    doc.text('koitbiopharma.com',pw-margin,7,{align:'right'});
+    y = 18;
+  }
+  function chk(n) { if(y+n>ph-20) addPage(); }
+
+  // Header
+  doc.setFillColor(15,37,64); doc.rect(0,0,pw,44,'F');
+  doc.setFontSize(22); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
+  doc.text('Lab Report Analysis',margin,20);
+  doc.setFontSize(11); doc.setFont('helvetica','normal'); doc.setTextColor(160,210,200);
+  doc.text(`Report Type: ${reportType.toUpperCase()} · ${new Date().toLocaleDateString()}`,margin,30);
+  doc.setFontSize(9); doc.setTextColor(120,160,150);
+  doc.text('Generated by Koit Biopharma Health Advisor',margin,38);
+  doc.setFillColor(0,137,123); doc.rect(0,44,pw,2,'F');
+  y = 54;
+
+  // Disclaimer
+  doc.setFillColor(255,249,225); doc.setDrawColor(240,200,80);
+  doc.roundedRect(margin,y,usable,12,2,2,'FD');
+  doc.setFontSize(8); doc.setFont('helvetica','italic'); doc.setTextColor(100,70,30);
+  doc.text('⚠ This analysis is for educational purposes only. It does not constitute a medical diagnosis. Always consult your doctor.',margin+4,y+8);
+  y += 20;
+
+  // Content
+  const lines = analysisText.replace(/VALUE_TABLE_START[\s\S]*?VALUE_TABLE_END\n?/,'').split('\n');
+  lines.forEach(line => {
+    if (!line.trim()) { y += 3; return; }
+    if (line.startsWith('## ')) {
+      chk(14); y += 4;
+      doc.setFillColor(15,37,64); doc.rect(margin,y-1,3,8,'F');
+      doc.setFontSize(13); doc.setFont('helvetica','bold'); doc.setTextColor(15,37,64);
+      doc.text(line.replace('## ',''),margin+7,y+6); y += 12;
+      doc.setDrawColor(200,210,220); doc.setLineWidth(0.3);
+      doc.line(margin,y,pw-margin,y); y += 5;
+    } else if (line.startsWith('- ') || line.startsWith('* ')) {
+      const txt = line.replace(/^[-*] /,'').replace(/\*\*(.*?)\*\*/g,'$1');
+      chk(8); doc.setFontSize(9.5); doc.setFont('helvetica','normal'); doc.setTextColor(50,70,90);
+      doc.setFillColor(0,137,123); doc.circle(margin+2,y+3.5,1.2,'F');
+      const w = doc.splitTextToSize(txt,usable-8);
+      doc.text(w,margin+7,y+5); y += w.length*5.5+1;
+    } else if (line.startsWith('⚠️') || line.includes('URGENT')) {
+      chk(10);
+      doc.setFillColor(255,235,238); doc.setDrawColor(239,154,154);
+      const w2 = doc.splitTextToSize(line.replace(/\*\*(.*?)\*\*/g,'$1'),usable-10);
+      doc.roundedRect(margin,y,usable,w2.length*6+8,2,2,'FD');
+      doc.setFontSize(9.5); doc.setFont('helvetica','bold'); doc.setTextColor(198,40,40);
+      doc.text(w2,margin+5,y+6); y += w2.length*6+14;
+    } else {
+      const clean = line.replace(/\*\*(.*?)\*\*/g,'$1').replace(/\*(.*?)\*/g,'$1');
+      if (!clean.trim()) return;
+      chk(7); doc.setFontSize(9.5); doc.setFont('helvetica','normal'); doc.setTextColor(50,70,90);
+      const w3 = doc.splitTextToSize(clean,usable);
+      doc.text(w3,margin,y+5); y += w3.length*5.5+1;
+    }
+  });
+
+  // Footer
+  chk(20); y += 8;
+  doc.setFillColor(15,37,64); doc.rect(0,ph-18,pw,18,'F');
+  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(160,180,200);
+  doc.text('Koit Biopharma Private Limited · koitbiopharma.com · Health Advisor',margin,ph-9);
+  doc.text(`Generated: ${new Date().toLocaleDateString()}`,pw-margin,ph-9,{align:'right'});
+
+  doc.save(`Koit-Lab-Analysis-${new Date().toLocaleDateString('en-GB').replace(/\//g,'-')}.pdf`);
+}
+
+// init
+showScreen('landingScreen');
+</script>
+</body>
+</html>
